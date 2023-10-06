@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gossip Network</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .node {
+            width: 20px;
+            height: 20px;
+            background-color: blue;
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hello-animation {
+            position: absolute;
+            animation: moveHello 1s linear forwards;
+        }
+
+        @keyframes moveHello {
+            0% {
+                top: 0;
+                left: 0;
+                opacity: 1;
+            }
+            100% {
+                top: -50px;
+                left: 20px;
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="network"></div>
+    <script>
+        const numNodes = 100;
+        const networkContainer = document.getElementById('network');
+
+        // Create nodes
+        for (let i = 0; i < numNodes; i++) {
+            const node = document.createElement('div');
+            node.className = 'node';
+            node.style.top = `${Math.random() * 100}vh`;
+            node.style.left = `${Math.random() * 100}vw`;
+            networkContainer.appendChild(node);
+        }
+
+        // Simulate gossiping (nodes exchanging messages)
+        setInterval(() => {
+            const nodes = document.querySelectorAll('.node');
+            const randomNodeIndex = Math.floor(Math.random() * numNodes);
+            const randomNode = nodes[randomNodeIndex];
+
+            // Pick a random node to gossip with
+            const gossipTargetIndex = Math.floor(Math.random() * numNodes);
+            const gossipTarget = nodes[gossipTargetIndex];
+
+            // Visualize gossiping (changing color)
+            randomNode.style.backgroundColor = 'red';
+            gossipTarget.style.backgroundColor = 'red';
+
+            // Create and animate "Hello" text element
+            const helloText = document.createElement('div');
+            helloText.textContent = 'Hello';
+            helloText.className = 'hello-animation';
+
+            // Calculate positions for the "Hello" animation
+            const randomNodeRect = randomNode.getBoundingClientRect();
+            const gossipTargetRect = gossipTarget.getBoundingClientRect();
+            const networkRect = networkContainer.getBoundingClientRect();
+            
+            helloText.style.top = `${randomNodeRect.top - gossipTargetRect.top + networkRect.top}px`;
+            helloText.style.left = `${randomNodeRect.left - gossipTargetRect.left + networkRect.left + randomNodeRect.width / 2}px`;
+
+            networkContainer.appendChild(helloText);
+
+            setTimeout(() => {
+                helloText.remove();
+                randomNode.style.backgroundColor = 'blue';
+                gossipTarget.style.backgroundColor = 'blue';
+            }, 1000);
+
+            // Log gossiping information (for demonstration purposes)
+            console.log(`Node ${randomNodeIndex} gossiped with Node ${gossipTargetIndex}`);
+        }, 2000);  // Gossip every 2 seconds
+    </script>
+</body>
+</html>

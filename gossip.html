@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Simulation</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .node {
+            width: 20px;
+            height: 20px;
+            background-color: blue;
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .edge {
+            position: absolute;
+            background-color: #ccc;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div id="network"></div>
+    <script>
+        const numNodes = 100;
+        const networkContainer = document.getElementById('network');
+        const nodes = [];
+        const edges = [];
+
+        // Create nodes
+        for (let i = 0; i < numNodes; i++) {
+            const node = document.createElement('div');
+            node.className = 'node';
+            node.style.top = `${Math.random() * 90}vh`;
+            node.style.left = `${Math.random() * 90}vw`;
+            node.textContent = i;
+            networkContainer.appendChild(node);
+            nodes.push(node);
+        }
+
+        // Randomly connect nodes with random weights
+        for (let i = 0; i < numNodes; i++) {
+            for (let j = 0; j < numNodes; j++) {
+                if (i !== j && Math.random() < 0.1) {
+                    const edge = document.createElement('div');
+                    edge.className = 'edge';
+                    const weight = Math.floor(Math.random() * 10) + 1;
+                    edge.textContent = weight;
+                    const rect1 = nodes[i].getBoundingClientRect();
+                    const rect2 = nodes[j].getBoundingClientRect();
+                    edge.style.width = `${Math.sqrt(Math.pow(rect1.left - rect2.left, 2) + Math.pow(rect1.top - rect2.top, 2))}px`;
+                    edge.style.transformOrigin = 'top left';
+                    edge.style.transform = `rotate(${Math.atan2(rect2.top - rect1.top, rect2.left - rect1.left)}rad)`;
+                    edge.style.top = `${Math.min(rect1.top, rect2.top)}px`;
+                    edge.style.left = `${Math.min(rect1.left, rect2.left)}px`;
+                    networkContainer.appendChild(edge);
+                    edges.push(edge);
+                }
+            }
+        }
+
+        // Dijkstra's algorithm for finding the shortest path
+        function dijkstra(start, end) {
+            const distances = Array(numNodes).fill(Infinity);
+            distances[start] = 0;
+            const visited = Array(numNodes).fill(false);
+
+            for (let i = 0; i < numNodes - 1; i++) {
+                const current = minDistance(distances, visited);
+                visited[current] = true;
+
+                for (let j = 0; j < numNodes; j++) {
+                    const edgeIndex = current * numNodes + j;
+                    if (edges[edgeIndex]) {
+                        const weight = parseInt(edges[edgeIndex].textContent, 10);
+                        if (!visited[j] && distances[current] + weight < distances[j]) {
+                            distances[j] = distances[current] + weight;
+                        }
+                    }
+                }
+            }
+
+            return distances[end];
+        }
+
+        function minDistance(distances, visited) {
+            let min = Infinity;
+            let minIndex = -1;
+            for (let i = 0; i < numNodes; i++) {
+                if (!visited[i] && distances[i] < min) {
+                    min = distances[i];
+                    minIndex = i;
+                }
+            }
+            return minIndex;
+        }
+
+        // Show animation of random source-destination connections using Dijkstra's algorithm
+        setInterval(() => {
+            const source = Math.floor(Math.random() * numNodes);
+            const destination = Math.floor(Math.random() * numNodes);
+            const shortestDistance = dijkstra(source, destination);
+            console.log(`Shortest path from Node ${source} to Node ${destination}: ${shortestDistance}`);
+
+            for (const edge of edges) {
+                edge.style.backgroundColor = '#ccc';
+            }
+
+            let currentNode = destination;
+            while (currentNode !== source) {
+                const prevNode = currentNode;
+                for (let i = 0; i < numNodes; i++) {
+                    const edgeIndex = i * numNodes + currentNode;
+                    if (edges[edgeIndex]) {
+                        const weight = parseInt(edges[edgeIndex].textContent, 10);
+                        if (dijkstra(source, currentNode) === dijkstra(source, i) + weight) {
+                            edges[edgeIndex].style.backgroundColor = 'red';
+                            currentNode = i;
+                            break;
+                        }
+                    }
+                }
+                if (prevNode === currentNode) {
+                    // No valid path found
+                    break;
+                }
+            }
+        }, 2000);  // Update every 2 seconds
+    </script>
+</body>
+</html>

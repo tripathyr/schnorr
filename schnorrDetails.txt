@@ -1,0 +1,134 @@
+On Bitcoin’s Schnorr signature algorithm and Taproot script and witness sizes
+
+In a recent article, script and witness sizes for all transaction output types existing as of May 2020 were investigated. This article is a follow-up that addresses the not yet implemented but highly anticipated Pay-to-Taproot (P2TR) transaction output type. To this end, the article begins with a discussion of the proposed Schnorr signature algorithm and its use in Taproot and multi-signatures in order to provide some context for the data found in P2TR locking scripts and witnesses. Compared to previous work, however, the subsequent investigation of locking-script and witness sizes is limited to a first-principle analysis since empirical data for validation is not yet available.
+
+Introduction
+Formally defined as SegWit version 1 output type in BIP341, the proposed Pay-to-Taproot (P2TR) output type is meant to improve Bitcoin’s privacy, efficiency, and flexibility. All of these improvements are made possible by a significant extension of Bitcoin’s cryptographic signature system.
+
+At the moment, Bitcoin relies exclusively on the Elliptic Curve Digital Signature Algorithm (ECDSA) for signatures. However, if the proposed Schnorr/Taproot improvements are implemented, this is going to change, and the Elliptic Curve Schnorr Signature Algorithm (ECSSA) will be added to Bitcoin. Although ECSSA offers various advantages over ECDSA, the discussion in this article will address only those that affect scripts and witnesses.
+
+The article starts with a high-level introduction to the Schnorr signature algorithm. Then, the use of Schnorr in Taproot and proposed Schnorr multi-signatures are discussed. Next, the encoding of Schnorr public keys and signatures in Bitcoin is addressed. Finally, Taproot’s locking-script and witness sizes are analyzed, and the findings summarized in a conclusion.
+
+Schnorr signatures
+This section provides a brief overview of Schnorr signature creation and validation and sets the stage for the discussion of Taproot and Schnorr multi-signatures in the following sections.
+
+Signature creation
+Creating a valid signature for some public key, P, requires the corresponding private key, p, that satisfies P=pG, with G, the generator point of Bitcoin’s elliptic curve secp256k1. Then, given some transaction, m, that spends an output locked with a public key, P, a Schnorr signature is created as follows. First, a random 32-byte number, k, is generated. From this k the first part of the signature, a curve point, R, is calculated as R=kG. The second part of the signature, a 32-byte value, s, is calculated as s=k+H(R‖P‖m)p, with k, the previously determined random 32-byte number; H, the SHA256 hashing function; R‖P‖m, the concatenation of the previously calculated first part of the signature, R, the public key, P, and the transaction to be signed, m; and, p, the private key. The full signature is then (R, s).
+
+Signature verification
+A signature (R, s) is verified by inserting it in the following equation and making sure the equality holds:sG = R+H(R‖P‖m)P. Note that all of the information required to verify the signature is publicly available: the signature (R, s); the curve’s generator point, G; the SHA256 hashing function, H; the public key, P; and the transaction to be signed, m.
+
+For a valid signature,R=kG and s=k+H(R‖P‖m)p, so the equation becomes
+(k+H(R‖P‖m)p)G = kG+H(R‖P‖m)P.
+Moreover, because P=pG, the equation can be rewritten as
+(k+H(R‖P‖m)p)G = kG+H(R‖P‖m)pG.
+Finally, when divided by G, the equation becomes
+k+H(R‖P‖m)p = k+H(R‖P‖m)p,
+demonstrating that a valid signature can only be created using the private key.
+
+Schnorr and Taproot
+One of the key features of Taproot is that is enables outputs locked with a Schnorr signature to be spent two ways: on one hand, using the key path, in which the output is spent using a Schnorr signature; on the other, using the script path, in which a script and input to it is provided. As a byproduct of this feature, P2TR locking scripts appear identical for Pay-to-Public-Key and Pay-to-Script-Hash outputs, thereby effectively hiding information about the output’s spending conditions at the time the output is created.
+
+In case of spending by script path, privacy is further enhanced by not revealing scripts that are disjunctions of multiple scripts (i.e., scripts that consist of multiple spending conditions that are combined using the OP_OR Bitcoin script instruction) in their entirety; instead, only the script that is used to unlock the coins is revealed.
+
+In the following, Taproot’s construction and the resulting implications are discussed in more detail.
+
+Tweaked keys
+So far, signature creation and verification used the public and private keys, P and p, where P=pG. To enable Taproot, the private key is tweaked, which means that a value t (called tweak) is added to it. The result is the tweaked private key, q=p+t. The tweak for Taproot defined in BIP341 is t=H(P,S), with H, the SHA256 hashing function; P, the original public key; and, S, the Merkle root of a Merkle tree whose leaves are the scripts that define disjoint spending conditions. From this tweaked private key, q, the tweaked public key, Q, is derived in the usual manner, namely by multiplying the tweaked private key with the generator: Q=qG. The tweaked public key, Q, is then used in the locking scripts of P2TR outputs.
+
+Key path
+To spend a P2TR output using the key path, a valid signature for the tweaked public key, Q, is required. This signature can be created using the tweaked private key, q.
+
+Essentially, nothing changes compared to regular Schnorr signature creation. The first part of the signature, R, remains kG. The second part of the signature, s, is determined using the tweaked public and private keys, Q and q, instead of the untweaked counterparts, P and p: s=k+H(R‖Q‖m)q.
+
+Similarly, the verification uses the tweaked public key, Q, so the relevant equation is sG = R+H(R‖Q‖m)Q.
+Inserting the signature yields
+(k+H(R‖Q‖m)q)G = kG+H(R‖Q‖m)Q.
+Moreover, the public key, Q, is equal to qG, so the equation becomes
+(k+H(R‖Q‖m)q)G = kG+H(R‖Q‖m)qG.
+Finally, dividing by the curve’s generator point, G, yields
+k+H(R‖Q‖m)q = k+H(R‖Q‖m)q.
+As before, this demonstrates a valid signatures can only be created using the tweaked private key.
+
+Script path
+To spend a P2TR output using the script path, the following must be provided: 
+1. one of the scripts from the Merkle tree whose root, S, was used to calculate the tweak, t; 
+2. a valid input for the script; 
+3. the hashes of the missing Merkle tree leaves and branches required to determine the Merkle root, S; 
+4. and the untweaked public key, P.
+
+In case of the script path, verification consists of two steps. First, by making sure that the tweaked public key used in the locking script, Q, is equal to P+H(P,S)G. Only a valid untweaked public key, P, and Merkle root, S, can fulfill this condition: When substituting qG for Q, the equation becomes
+qG=P+H(P,S)G.
+Moreover, substituting q for p+t with tweak t=H(P,S), yields
+(p+H(P,S))G=P+H(P,S)G.
+Next, the terms in parenthesis on the left side of the equation are multiplied with G, so the equation becomes
+pG+H(P,S)G=P+H(P,S)G.
+Finally, P is substituted for pG on the left, which yields
+P+H(P,S)G=P+H(P,S)G, demonstrating that the equation is satisfied for correct values P and S.
+
+For the previously described verification process, the Merkle root, S, needs to be derived. This is done by hashing the provided script and combining the result with the provided hashes of the missing Merkle tree leaves and branches. All other inputs are directly available: the tweaked public key, Q, is given in the locking script and the untweaked public key, P, is provided along with the script, its input, and the Merkle tree hashes.
+
+The second step in script-path verification consists of making sure that the provided inputs fulfill the spending conditions set forth in the script that was presented. If this is the case, verification is successful.
+
+Schnorr and multi-signature
+One of the benefits of ECSSA (compared to other signature algorithms such as ECDSA) is its linearity, which refers to the fact that Schnorr’s cryptographic operations are additive and homogeneous. In the following, the concept of additivity and its implications for Schnorr multi-signatures are discussed.
+
+Additivity
+A function f is considered additive when f(x)+f(y)=f(x+y) for all x and y. This is, for example, the case for a function that multiples its input by ten, f(x)=10x: e.g., f(2)+f(3)=20+30 is that same as f(2+3)=50 (the same is true for all other numbers). A function squaring its inputs, f(x)=x², however, is not additive: e.g., f(2)+f(3)=4+9 is not equal to f(2+3)=25.
+
+The way Schnorr signature’s are constructed makes them additive. In the context of Bitcoin, this leads to some convenient implications, some of which are discussed in the following.
+
+Schnorr multi-signatures
+The additivity property allows for the creation of a Schnorr multi-signature scheme in which a single public key can be used to realize a multi-signature requirement. Moreover, a single signature is sufficient to unlock the funds.
+
+A Schnorr multi-signature public key, Q, is constructed from multiple individual public keys, Qᵢ: in essence, Q=Q₁+…+Qₙ. A valid Schnorr multi-signature, (R, s), for the resulting public key, Q, can be created by combining individual signatures, (Rᵢ, sᵢ), each created using the private key, qᵢ, corresponding to the public key, Qᵢ: in essence, (R=R₁+…+Rₘ, s=s₁+…+sₘ). Note that the actual calculation Q, R, and s is more complex, but the same general idea applies.
+
+This means that independent of m and n, m-of-n Schnorr multi-signatures use a single public key and signature, Q and (R, s), to lock and unlock funds. This has two significant implications: on one hand, it means that Schnorr multi-signatures are indistinguishable from regular Schnorr Pay-to-Public-Key transactions; on the other, and of significant importance with respect to Bitcoin’s scalability, it means that existing resource-straining multi-signature that contain multiple public keys and signatures can be replaced with significantly smaller, fixed-size Schnorr signatures — in other words: Schnorr reduces the size complexity of multi-signature from O(m+n) to O(1).
+
+Encoding of public keys and signatures
+Bitcoin uses elliptic curve cryptography, where public keys correspond to points on an elliptic curve, where each point is defined by a set of x- and y-coordinates. The elliptic curve used by Bitcoin, secp256k1, is defined in the Standards for Efficiency Cryptography (SEC), and uses 256-bit (i.e. 32-byte) numbers to represent the x- and y-coordinates of points on the curve.
+
+ECDSA public keys
+In Bitcoin, ECDSA public keys are encoded following SEC conventions. The format uses a prefix byte to indicate whether the uncompressed or compressed SEC format is used. In the uncompressed format, a public key’s 32-byte x- and y-coordinates are encoded, leading to a total encoding size of 65 bytes when taking the one-byte prefix into account. In the compressed format, only the public key’s 32-byte x-coordinates is encoded. (Note that the full public key can be reconstructed from this encoding: a public key’s y-coordinate can be derived from the key’s x-coordinate using the equation y²=x³+7 of Bitcoin’s elliptic curve secp256k1; the y² in the equation implies there exist two valid solutions for each x-coordinate; this ambiguity is resolved using information encoded in the SEC prefix.) ECDSA public keys encoded using the compressed SEC format thus have size of 33 bytes.
+
+ECSSA public keys
+According to BIP340, ECSSA public keys no longer use the SEC format. Instead, a custom encoding that uses no prefix byte is proposed, in which only the public key’s 32-byte x-coordinate is encoded. Since the encoding lacks a prefix byte to resolve the issue of ambiguity concerning the y-coordinate, the ambiguity is resolved implicitly: for any given x-coordinate, exactly one of the two y-coordinate fulfilling the equation y²=x³+7 will be a quadratic residue (i.e., square number modulo the field size defined for Bitcoin’s elliptic curve secp256k1); by definition, a public key’s y-coordinate is always the quadratic residue. The size of the encoding of an ECSSA public key is, therefore, 32 bytes.
+
+ECDSA signatures
+ECDSA signatures consist of two 32-byte numbers, r and s. In Bitcoin, such signatures are encoded according to the Distinguished Encoding Rules (DER), where each of the two numbers is prefixed by two bytes: one byte to encode the data type, which is an integer; another byte to indicate the length of the data. The encoding of the two numbers is then preceded by two more bytes: one to indicate that the signature consists of multiple elements (two to be exact, the encodings of r and s) and another to indicate the total length of the following encoding. This implies an overhead of six bytes for the encoding of two 32-byte numbers, leading to a total ECDSA signature size of 70 bytes. Moreover, since Bitcoin supports multiple signature hash types (to indicate which parts of a message are signed), an additional byte is appended to the ECDSA signature to indicate the signature hash type. The total ECDSA signature size in Bitcoin according to this reasoning is thus 71 bytes. It is, however, worth noting that various effects can lead to the signature begin slightly smaller or larger. In practice, Bitcoin’s ECDSA signatures have an average size of 71.5 bytes (see Encoding of Signatures here).
+
+ECSSA signatures
+For ECSSA signatures, BIP340 proposes to discard the DER format is favor of a simpler, fixed encoding to avoid unnecessary overhead. In ECSSA, signatures comprise a point on the elliptic curve, R, and a 32-byte number, s. In the signature, the encoding of the point R follows the previously discussed encoding for ECSSA public keys, so only its 32-byte x-coordinate is encoded. The 32-byte x-coordinate of R and the 32-byte number s are encoded back-to-back, resulting in a preliminary signature size of 64 bytes. Moreover, the signature hash type is omitted in the default case where the whole message is signed; an additional byte indicating the signature hash type is thus only used when a non-default signature type is chosen, which, currently, is rarely the case. The total ECSSA signature size is thus only 64 bytes in the default case.
+
+Locking-script and witness sizes
+This section investigates the proposed P2TR locking-script and witness formats and gives first-principles-based size estimates for both.
+
+Locking-script format
+The locking-script format of P2TR outputs is OP_1 0x20 <pubkey> , with OP_1 , the Bitcoin Script instruction used to indicate a new version 1 witness program corresponding to Schnorr/Taproot; 0x20, the length of the following 32-byte ECSSA public key in bytes (using hexadecimal representation); and <pubkey>, the 32-byte encoding an ECSSA public key.
+
+Locking-script size estimate
+The encodings of the witness version and the length of the public key contribute one byte each; the public key contributes 32 bytes. The total locking-script size is thus 34 bytes.
+
+Witness format
+As previously discussed, the P2TR locking scripts can be satisfied either using the key path (i.e., by providing a valid signature for the tweaked public key in the locking script) or the script path (i.e., by providing a valid input for the presented script, a script to be satisfied, an untweaked public key, and hashes of the leaves and branches of the Merkle tree required to calculate the tree’s root). In the following, the witness formats of both paths are discussed.
+
+Key-path witness format
+When using the key path, the witness format is <nitems> <len> <sig> , with <nitems>, the encoding of the number of witness items; <len>, the length of the following Bitcoin ECSSA signature; and <sig> , a Bitcoin ECSSA signature.
+
+Key-path witness size estimate
+The encoding of the length of the signature contributes one byte to the witness size. The signature is 64 bytes in case of the default signature hash type and 65 bytes in case of a custom signature hash type. Thus, the witness has a total size of either 65 or 66 bytes. Absent empirical data, the witness-size estimate will be based on the assumption that the default signature hash type is used in most cases. The key-path witness-size estimate based on this hypothesis is, therefore, 66 bytes.
+
+Script-path witness format
+When using the script path, the witness format is <nitems> <len> <input> <len> <script> <len> <c> , with <nitems>, the encoding of the number of witness items; <len> , in each instance the length of the following item;<input> , an input that fulfills the spending conditions set by the following script; <script> , a script that will be interpreted as locking script; and <c>, a control block: the first byte of the control block encodes the leaf version, which in case of the script path is always 0xc0 to indicate a script-path spend; the following 32 bytes of the control block is the encoding of the untweaked public key; finally, the control block holds 32-byte blocks that encode the hashes of the leaves and branches of the Merkle tree that are necessary to reconstruct the Merkle root.
+
+Script-path witness size estimate
+The scripts in the witness can set arbitrary spending conditions and the data to fulfill these scripts varies significantly depending on these conditions. Moreover, depending on the number of disjoint spending conditions in the Merkle tree and the path to the script that is used for spending, the number of 32-byte hashes in the control block can vary significantly. In light of this, giving an estimate for the size of script-path witnesses is pointless without empirical data.
+
+Results and Conclusion
+The mathematical theory of Schnorr signature creation and validation was presented. Moreover, the theory behind tweaked Schnorr keys, and the application of such tweaked keys in Taproot to realize different spending paths (i.e., key and script paths) were covered. Further, an investigation of the benefits of Schnorr in the context of multi-signatures revealed a size reduction from O(m+n), for previous m-of-n multi-signature variants, to O(1), for m-of-n Schnorr multi-signatures.
+
+With a focus on the practical application of Schnorr signatures, the encodings of Schnorr public keys and signatures proposed for Bitcoin were investigated; the size requirements for Schnorr public keys and signatures were determined to be 32 and 64 bytes, respectively (compared to 33 and 71.5 bytes for ECDSA). Moreover, locking-script and witness formats were discussed, for which, finally, size estimates were given: the locking-script size is fixed at 34 bytes; the witness in case of the key path (i.e., for Pay-to-Public-Key and multi-signature) was estimated to be 66 bytes; when it comes to the script path, a failure to establish meaningful estimates due to lack of empirical data had to be acknowledged.
+
+If you found the information in this article useful, feel free to contribute: 16pGpaoAhzoneLdRdxPSo9xAAPhzWnP2dA. If you have scientific, Bitcoin-related freelance work, let me know.
+
+https://medium.com/coinmonks/on-bitcoins-schnorr-signature-algorithm-and-taproot-script-and-witness-sizes-fe4d1e6591a7

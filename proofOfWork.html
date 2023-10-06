@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Proof of Work in the Browser</title>
+  <style>
+    /* Add CSS animation keyframes */
+    @keyframes highlight {
+      0% { background-color: yellow; }
+      100% { background-color: white; }
+    }
+
+    /* Apply animation to the result elements */
+    .highlight {
+      animation: highlight 1s infinite; /* Infinite animation */
+    }
+  </style>
+  <script>
+    // Default difficulty level
+    let difficulty = 3;
+
+    // Function to perform the proof of work
+    async function performProofOfWork(data, difficulty) {
+      let nonce = 0;
+      const nonceElement = document.getElementById('nonce');
+      const hashElement = document.getElementById('hash');
+      const verifyDataInput = document.getElementById('verifyData');
+      const verifyNonceInput = document.getElementById('verifyNonce');
+      const verifyHashInput = document.getElementById('verifyHash');
+
+      // Add the highlight class to start the animation
+      nonceElement.classList.add('highlight');
+      hashElement.classList.add('highlight');
+
+      while (true) {
+        const hash = await sha256(data + nonce);
+        if (hash.slice(0, difficulty) === '0'.repeat(difficulty)) {
+          // When the result is found, remove the highlight class
+          nonceElement.classList.remove('highlight');
+          hashElement.classList.remove('highlight');
+
+          // Verify the result
+          if (await verifyProofOfWork(data, nonce, difficulty)) {
+            // Populate the verification form fields
+            verifyDataInput.value = data;
+            verifyNonceInput.value = nonce;
+            verifyHashInput.value = hash;
+            
+            return { nonce, hash };
+          }
+        }
+        nonce++;
+      }
+    }
+
+    // Function to verify the proof of work
+    async function verifyProofOfWork(data, nonce, difficulty) {
+      const hash = await sha256(data + nonce);
+      return hash.slice(0, difficulty) === '0'.repeat(difficulty);
+    }
+
+    // SHA-256 hashing function (You can replace this with a library)
+    async function sha256(input) {
+      const buffer = new TextEncoder().encode(input);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Handle the proof of work when the button is clicked
+    async function performProofOfWorkClick() {
+      const requestData = document.getElementById('data').value;
+
+      if (!requestData) {
+        alert('Data is required');
+        return;
+      }
+
+      // Get the difficulty level set by the user
+      const userDifficulty = parseInt(document.getElementById('difficulty').value);
+
+      if (isNaN(userDifficulty) || userDifficulty <= 0) {
+        alert('Difficulty must be a positive number');
+        return;
+      }
+
+      difficulty = userDifficulty;
+
+      const result = await performProofOfWork(requestData, difficulty);
+      document.getElementById('nonce').textContent = result.nonce;
+      document.getElementById('hash').textContent = result.hash;
+    }
+
+    // Handle verification when the form is submitted
+    async function verifyProofOfWorkFormSubmit(event) {
+      event.preventDefault();
+
+      const verifyData = document.getElementById('verifyData').value;
+      const verifyNonce = document.getElementById('verifyNonce').value;
+      const verifyHash = document.getElementById('verifyHash').value;
+
+      if (!verifyData || !verifyNonce || !verifyHash) {
+        alert('All fields are required for verification');
+        return;
+      }
+
+      // Verify the result
+      if (await verifyProofOfWork(verifyData, parseInt(verifyNonce), difficulty) && verifyHash) {
+        alert('Proof of work verified successfully!');
+      } else {
+        alert('Proof of work verification failed.');
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>Proof of Work in the Browser</h1>
+  <label for="data">Data:</label>
+  <input type="text" id="data" placeholder="Enter data...">
+  <label for="difficulty">Difficulty:</label>
+  <input type="number" id="difficulty" placeholder="Enter difficulty level..." value="3">
+  <button onclick="performProofOfWorkClick()">Perform Proof of Work</button>
+  <div>
+    <h2>Proof of Work Result</h2>
+    <p>Nonce: <span id="nonce" class="highlight"></span></p>
+    <p>Hash: <span id="hash" class="highlight"></span></p>
+  </div>
+
+  <!-- Verification Form -->
+  <h2>Verification</h2>
+  <form id="verificationForm" onsubmit="verifyProofOfWorkFormSubmit(event)">
+    <label for="verifyData">Data:</label>
+    <input type="text" id="verifyData" required>
+    <label for="verifyNonce">Nonce:</label>
+    <input type="number" id="verifyNonce" required>
+    <label for="verifyHash">Hash:</label>
+    <input type="text" id="verifyHash" required>
+    <button type="submit">Verify Proof of Work</button>
+  </form>
+</body>
+</html>

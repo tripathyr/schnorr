@@ -1,0 +1,364 @@
+Scalar addition, subtraction, multiplication and division over secp256k1 are modulo a large prime number SECP256K1_ORDER.
+
+All scalar operations are performed modulo SECP256K1_ORDER.
+Addition: a + b % SECP256K1_ORDER
+Subtraction: -a = SECP256K1_ORDER - a
+Multiplication: a * b % SECP256K1_ORDER
+Division (see Fermat's little theorem): 1/b = b ** (SECP256K1_ORDER-2) % SECP256K1_ORDER
+
+https://colab.research.google.com/github/bitcoinops/taproot-workshop/blob/Colab/0.2-elliptic-curve-math.ipynb#scrollTo=sT5C0g93K_2p
+
+Integers: All Scalar operations over secp256k1 can be performed with python integers and the modulo % operator.
+
+Scalar addition, subtraction, multiplication and division over secp256k1 are modulo a large prime number SECP256K1_ORDER.
+
+All scalar operations are performed modulo SECP256K1_ORDER.
+Addition: a + b % SECP256K1_ORDER
+Subtraction: -a = SECP256K1_ORDER - a
+Multiplication: a * b % SECP256K1_ORDER
+Division (see Fermat's little theorem): 1/b = b ** (SECP256K1_ORDER-2) % SECP256K1_ORDER
+ECKey: The Bitcoin Core library provides a private key class which can also perform certain scalar operations.
+
+Addition: a + b
+Subtraction: a - b
+Multiplication: a * b
+Division: a * 1/b (See Fermat's little theorem)
+ECPubKey: A public key is the private key scalar multiplied by the group's generator point G. The following operations are possible with public keys.
+
+Addition (of two public keys): A + B
+Subtraction (of one point from another): A - B
+Multiplication (of a point times a scalar): A * b
+Division (of a point by a scalar): A * 1/b (See Fermat's little theorem)
+
+===
+a / b
+
+What is b ** (n -2 ) mod n
+b ** ( n -2) 
+= b ** (n-1) * b ** (-1) 
+[ b ** n-1 mod n is prime number as per Fermat's last theorem ]
+= 1 * b ** (-1)
+= 1/ b
+
+So a / b is a * b **(n-2) 
+
+a/ b 
+= a /b  *  b ** ( n-1)
+= a * b ** (n -2)
+
+==
+
+Python 3.x makes a clear distinction between the types:
+
+str = '...' literals = a sequence of Unicode characters (Latin-1, UCS-2 or UCS-4, depending on the widest character in the string)
+bytes = b'...' literals = a sequence of octets (integers between 0 and 255)
+
+https://stackoverflow.com/questions/6269765/what-does-the-b-character-do-in-front-of-a-string-literal
+
+You can encode a str to a bytes object.
+
+>>> '\uFEFF'.encode('UTF-8')
+b'\xef\xbb\xbf'
+And you can decode a bytes into a str.
+
+>>> b'\xE2\x82\xAC'.decode('UTF-8')
+'€'
+
+===
+
+# Python program showing how to use
+# string modulo operator(%) to print
+# fancier output
+ 
+# print integer and float value
+print("Geeks : %2d, Portal : %5.2f" % (1, 05.333))
+
+==
+
+
+# Python program showing
+# use of format() method
+ 
+# using format() method
+print('I love {} for "{}!"'.format('Geeks', 'Greeks'))
+ 
+# using format() method and referring
+# a position of the object
+print('{0} and {1}'.format('Geeks', 'Portal'))
+ 
+print('{1} and {0}'.format('Geeks', 'Portal'))
+
+==
+
+Python Set Method
+
+# Python3 code to demonstrate the
+# working of set() on list and tuple
+ 
+# initializing list
+lis1 = [ 3, 4, 1, 4, 5 ]
+ 
+# initializing tuple
+tup1 = (3, 4, 1, 4, 5)
+ 
+# Printing iterables before conversion
+print("The list before conversion is : " + str(lis1))
+print("The tuple before conversion is : " + str(tup1))
+ 
+# Iterables after conversion are
+# notice distinct and elements
+print("The list after conversion is : " + str(set(lis1)))
+print("The tuple after conversion is : " + str(set(tup1)))
+
+==
+
+
+
+# Python3 code to demonstrate the
+# working of set() on list and tuple
+ 
+# initializing list
+lis1 = [ 3, 4, 1, 4, 5 ]
+ 
+# initializing tuple
+tup1 = (3, 4, 1, 4, 5)
+ 
+# Printing iterables before conversion
+print("The list before conversion is : " + str(lis1))
+print("The tuple before conversion is : " + str(tup1))
+ 
+# Iterables after conversion are
+# notice distinct and elements
+print("The list after conversion is : " + str(set(lis1)))
+print("The tuple after conversion is : " + str(set(tup1)))
+
+==
+
+# Python3 code to demonstrate the
+# working of set() on dictionary
+ 
+# initializing list
+dic1 = { 4 : 'geeks', 1 : 'for', 3 : 'geeks' }
+ 
+# Printing dictionary before conversion
+# internally sorted
+print("Dictionary before conversion is : " + str(dic1))
+ 
+# Dictionary after conversion are
+# notice lost keys
+print("Dictionary after conversion is : " + str(set(dic1)))
+
+==
+SOLVED
+
+a = random.randrange(SECP256K1_ORDER / 2, SECP256K1_ORDER)
+a_key = ECKey().set(a) 
+
+b = random.randrange(SECP256K1_ORDER / 2, SECP256K1_ORDER)
+b_key = ECKey().set(b) 
+
+# Left: Compute a + b as ints (modulo the sepc256k1 group order)
+left_a_plus_b =  (a_key + b_key)
+
+# Right: Compute b + a as ECKeys
+right_b_plus_a =  (b_key + a_key) 
+
+print("Left: {}".format(left_a_plus_b.secret))
+print("Right: {}\n".format(right_b_plus_a))
+
+# Left/Right: Assert equality
+assert left_a_plus_b.secret == right_b_plus_a.secret
+
+# Left: Compute a * b as ints (modulo the sepc256k1 group order)
+left_a_times_b = (a_key * b_key)
+
+# Right: Compute b * a as ECKeys
+right_b_times_a =  (b_key * a_key) 
+
+print("Left: {}".format(left_a_times_b))
+print("Right: {}\n".format(right_b_times_a))
+
+==
+
+SOLVED
+
+a = random.randrange(1, SECP256K1_ORDER)
+a_key = ECKey().set(a)
+
+b = random.randrange(1, SECP256K1_ORDER)
+b_key = ECKey().set(b)
+
+c = random.randrange(1, SECP256K1_ORDER)
+c_key = ECKey().set(c)
+
+# Left: Compute a - b as ints (modulo the sepc256k1 group order)
+a_minus_b =  a_key - b_key
+
+# Left: Compute (a - b) * c as ints (modulo the sepc256k1 group order)
+left =  (a_key - b_key) * c_key
+
+# Right: Compute a * c - b * c as ECKeys
+right =  a_key * c_key - b_key * c_key
+
+print("Left: {}".format(left))
+print("Right: {}".format(right))
+
+# Left/Right: Assert equality
+assert left.secret == right.secret
+print("\nSuccess!")
+
+Left: 967042584739212567571362607812593197201616198479579314216658314157934451633
+Right: 967042584739212567571362607812593197201616198479579314216658314157934451633
+
+Success!
+
+==
+
+SOLVED
+
+a = ECKey().generate()
+b = ECKey().generate()
+c, C = generate_key_pair()
+
+# Left: Compute (a - b) * C  
+left =  (a - b) * C
+
+# Right: Compute aC - bC
+right =  a*C - b*C
+
+print("Left: {}".format(left))
+print("Right: {}".format(right))
+
+# Left/Right: Assert equality
+assert left == right
+print("\nSuccess!")
+
+==
+
+https://colab.research.google.com/github/bitcoinops/taproot-workshop/blob/Colab/0.3-tagged-hashes.ipynb#scrollTo=ZPIIB06I7Rg8
+
+SOLVED
+def tagged_hash(tag, input_data):
+    # Hash "TagName" using SHA256
+    tag_digest = sha256(tag)
+    # The preimage becomes sha256("TagName") + sha256("TagName") + data
+    preimage =  sha256(tag) + sha256(tag) + input_data
+    return sha256(preimage)
+
+h = tagged_hash(b'SampleTagName', b'Input data')
+
+assert h.hex() == "4c55df56134d7f37d3295850659f2e3729128c969b3386ec661feb7dfe29a99c"
+print("Success!")
+
+==
+
+h = b'LU\xdfV\x13M\x7f7\xd3)XPe\x9f.7)\x12\x8c\x96\x9b3\x86\xecf\x1f\xeb}\xfe)\xa9\x9c'
+>>> h.hex()
+'4c55df56134d7f37d3295850659f2e3729128c969b3386ec661feb7dfe29a99c'
+>>> h1 = b'LU'
+>>> h.hex()
+'4c55df56134d7f37d3295850659f2e3729128c969b3386ec661feb7dfe29a99c'
+>>> h1.hex()
+'4c55'
+>>> h1 = b'L'
+>>> h1.hex()
+'4c'
+>>> h1 = b'U'
+>>> h1.hex()
+'55'
+>>> h1 = b'\xd'
+  File "<stdin>", line 1
+SyntaxError: (value error) invalid \x escape at position 0
+>>> h1 = b'\xdf'
+>>> h1.hex()
+'df'
+>>> h.hex()
+'4c55df56134d7f37d3295850659f2e3729128c969b3386ec661feb7dfe29a99c'
+>>> h
+b'LU\xdfV\x13M\x7f7\xd3)XPe\x9f.7)\x12\x8c\x96\x9b3\x86\xecf\x1f\xeb}\xfe)\xa9\x9c'
+>>> h1 = b'\xdfV'
+>>> h1.hex()
+'df56'
+>>> h1 = b'A'
+>>> h1.hex()
+'41'
+>>> h1 = b'Z'
+>>> h1.hex()
+'5a'
+>>> h1 = b'a'
+>>> h1.hex()
+'61'
+>>> h1 = b'z'
+>>> h1.hex()
+'7a'
+>>> h1 = b'\x7f7'
+>>> h1.hex()
+'7f37'
+>>> h1 = b'7'
+>>> h1.hex()
+'37'
+>>> h1 = b'1'
+>>> h1.hex()
+'31'
+>>> h1 = b'0'
+>>> h1.hex()
+'30'
+>>> h1 = b'9'
+>>> h1.hex()
+'39'
+>>> h
+b'LU\xdfV\x13M\x7f7\xd3)XPe\x9f.7)\x12\x8c\x96\x9b3\x86\xecf\x1f\xeb}\xfe)\xa9\x9c'
+>>> h1 = b'.'
+>>> h1.hex()
+'2e'
+>>> h1 = b'.)(}'
+>>> h1.hex()
+'2e29287d'
+>>> h.hex()
+'4c55df56134d7f37d3295850659f2e3729128c969b3386ec661feb7dfe29a99c'
+ 
+==
+
+All modulus operations are on FIELD ORDER
+All negation operation is on FIELD SIZE
+
+# Generate a random value and its assoctiated curve point. We can use the generate_key_pair convenience function.
+k, R = generate_key_pair()
+
+# Find y and -y
+y = R.get_y()
+minus_y = SECP256K1_FIELD_SIZE - y
+print("y = {}".format(y))
+print("-y = {}\n".format(minus_y))
+
+# One of y and -y will be even and the other will be odd
+print("y is {}".format("odd" if y % 2 else "even"))
+print("-y is {}\n".format("odd" if minus_y % 2 else "even"))
+
+print("k is {}a valid nonce".format("" if y % 2 == 0 else "not "))
+print("-k is {}a valid nonce".format("" if minus_y % 2 == 0 else "not "))
+print("\nField Order = {}".format(SECP256K1_ORDER))
+print("Field Size  = {}".format(SECP256K1_FIELD_SIZE))
+
+# Generate a random value and its assoctiated curve point. We can use the generate_key_pair convenience function.
+k, R = generate_key_pair()
+
+# Find y and -y
+y = R.get_y()
+minus_y = SECP256K1_FIELD_SIZE - y
+print("y = {}".format(y))
+print("-y = {}\n".format(minus_y))
+
+# One of y and -y will be even and the other will be odd
+print("y is {}".format("odd" if y % 2 else "even"))
+print("-y is {}\n".format("odd" if minus_y % 2 else "even"))
+
+print("k is {}a valid nonce".format("" if y % 2 == 0 else "not "))
+print("-k is {}a valid nonce".format("" if minus_y % 2 == 0 else "not "))
+print("\nField Order = {}".format(SECP256K1_ORDER))
+print("Field Size  = {}".format(SECP256K1_FIELD_SIZE))
+
+==
+
+
+
