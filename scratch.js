@@ -16,7 +16,7 @@
 //IMPORTANT const createPipeline = messenger.createPipeline CHANGE THIS in messenger.lib 
 //_redeemscript, x_fetch_for_editing funtion needs to be exposed in Messenger
 
-messenger.editFee = function(tx_id, new_fee, private_key, change_only = true) {
+messenger.editFee = function(tx_id, new_fee, private_keys, change_only = true) {
     return new Promise((resolve, reject) => {
         //1. FIND REDEEMSCRIPT
         //2. CHANGE OUTPUT VALUES
